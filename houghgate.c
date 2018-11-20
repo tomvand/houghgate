@@ -4,10 +4,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <stdio.h>
 
 // Number of attempts at random sampling 1 pixel
 #ifndef HOUGHGATE_SAMPLE_ITER
-#define HOUGHGATE_SAMPLE_ITER 100
+#define HOUGHGATE_SAMPLE_ITER 1000
 #endif
 
 // Downsample factor for accumulator size. Use 1, 2, 4 or 8
@@ -30,22 +31,22 @@
 
 // YUV thresholds for default color filter
 #ifndef HOUGHGATE_YMIN
-#define HOUGHGATE_YMIN 84
+#define HOUGHGATE_YMIN 84//22
 #endif
 #ifndef HOUGHGATE_YMAX
-#define HOUGHGATE_YMAX 255
+#define HOUGHGATE_YMAX 255//148
 #endif
 #ifndef HOUGHGATE_UMIN
-#define HOUGHGATE_UMIN 79
+#define HOUGHGATE_UMIN 82//90
 #endif
 #ifndef HOUGHGATE_UMAX
-#define HOUGHGATE_UMAX 128
+#define HOUGHGATE_UMAX 122//114
 #endif
 #ifndef HOUGHGATE_VMIN
-#define HOUGHGATE_VMIN 56
+#define HOUGHGATE_VMIN 66//79
 #endif
 #ifndef HOUGHGATE_VMAX
-#define HOUGHGATE_VMAX 122
+#define HOUGHGATE_VMAX 122//126
 #endif
 
 // Convenience macros for YUV422
@@ -64,11 +65,6 @@ struct pointf_t {
   float y;
 };
 
-#define PT_ADD(o, a, b) { (o).x = (a).x + (b).x; (o).y = (a).y + (b).y; }
-#define PT_SUB(o, a, b) { (o).x = (a).x - (b).x; (o).y = (a).y - (b).y; }
-#define PT_SMUL(o, a, s) { (o).x = (a).x * (s); (o).y = (a).y * (s); }
-#define PT_SDIV(o, a, s) { (o).x = (a).x / (s); (o).y = (a).y / (s); }
-
 // Accumulator and other buffers
 static uint16_t accumulator[ACCUMULATOR_WIDTH * ACCUMULATOR_HEIGHT];
 static struct pointu16_t points[HOUGHGATE_MAX_SAMPLES];
@@ -83,13 +79,17 @@ static uint_fast16_t points_count;
  * @return nonzero (1) if inlier, 0 if outlier
  */
 static uint8_t isgate_yuv(const struct image_t *img, uint16_t x, uint16_t y) {
-  uint8_t score = 0;
+  printf("x = %d, y = %d\n", x, y);
+  printf("y = %d, u = %d, v = %d\n", PIXEL_Y(img, x, y), PIXEL_U(img, x, y), PIXEL_V(img, x, y));
   if(HOUGHGATE_YMIN <= PIXEL_Y(img, x, y) && PIXEL_Y(img, x, y) <= HOUGHGATE_YMAX &&
       HOUGHGATE_UMIN <= PIXEL_U(img, x, y) && PIXEL_U(img, x, y) <= HOUGHGATE_UMAX &&
       HOUGHGATE_VMIN <= PIXEL_V(img, x, y) && PIXEL_V(img, x, y) <= HOUGHGATE_VMAX) {
-    score = 1;
+    printf("inlier\n");
+    return 1;
+  } else {
+    printf("outlier\n");
+    return 0;
   }
-  return score;
 }
 
 /**
@@ -158,6 +158,7 @@ uint8_t houghgate(const struct image_t *img, struct houghresult_t *result) {
       }
     }
   } while (1); // TODO check clock
+  result->samples = points_count;
   return RET_OK;
 }
 
@@ -168,3 +169,9 @@ void houghgate_debug_get_accumulator(uint16_t **acc, int *w, int *h) {
   *w = ACCUMULATOR_WIDTH;
   *h = ACCUMULATOR_HEIGHT;
 }
+
+void houghgate_debug_get_points(struct pointu16_t **pts, int *pts_cnt) {
+  *pts = points;
+  *pts_cnt = points_count;
+}
+

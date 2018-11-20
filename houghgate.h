@@ -10,6 +10,7 @@
 
 struct houghresult_t {
   uint16_t inliers;
+  uint16_t samples;
   struct point_t center;
   uint8_t radius;
 };
