@@ -64,10 +64,10 @@ int main(int argc, char **argv) {
     if(houghgate(&img_s, &res)) {
       std::cout << "RET_ERR" << std::endl;
     } else {
-      cv::circle(img, cv::Point(res.center.x, res.center.y), 3, cv::Scalar(255, 255, 255));
+      cv::circle(img, cv::Point(res.center.x, res.center.y), res.radius, cv::Scalar(255, 255, 255));
     }
 
-    std::cout << "X = " << res.center.x << ", Y = " << res.center.y << std::endl;
+    std::cout << "X = " << res.center.x << ", Y = " << res.center.y << ", R = " << res.radius << std::endl;
     std::cout << "samples = " << res.samples << ", inliers = " << res.inliers << std::endl;
     std::cout << "===================" << std::endl;
 

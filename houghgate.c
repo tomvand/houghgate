@@ -24,6 +24,11 @@
 #define HOUGHGATE_MAX_SAMPLES 20
 #endif
 
+// Max number of pixels to estimate radius
+#ifndef HOUGHGATE_RADIUS_MAX_SAMPLES
+#define HOUGHGATE_RADIUS_MAX_SAMPLES 11
+#endif
+
 // Function to check pixel as inlier
 #ifndef HOUGHGATE_INLIER
 #define HOUGHGATE_INLIER(img_ptr, x, y) (isgate_yuv(img_ptr, x, y))
@@ -53,6 +58,8 @@
 #define PIXEL_U(img,x,y) ( ((uint8_t*)((img)->buf))[4*(int)((x)/2) + 2*(y)*(img)->w] )
 #define PIXEL_V(img,x,y) ( ((uint8_t*)((img)->buf))[4*(int)((x)/2) + 2*(y)*(img)->w + 2] )
 #define PIXEL_Y(img,x,y) ( ((uint8_t*)((img)->buf))[2*(x) + 1 + 2*(y)*(img)->w] )
+
+#define SQUARE(a) ( (a) * (a) )
 
 // Internal types
 struct pointu16_t {
@@ -109,6 +116,22 @@ static uint8_t sample_pixel(const struct image_t *img, struct pointu16_t *pt) {
   return RET_ERR;
 }
 
+static int uint8_comp(const void *a, const void *b) {
+  return ( *(uint8_t*)a - *(uint8_t*)b );
+}
+
+static uint8_t median_radius(const struct pointu16_t pts[], uint_fast16_t pts_cnt, struct point_t center) {
+  uint8_t radii[HOUGHGATE_RADIUS_MAX_SAMPLES];
+  uint_fast8_t cnt = HOUGHGATE_MAX_SAMPLES;
+  if(pts_cnt < cnt) cnt = pts_cnt;
+  memset(radii, 0, HOUGHGATE_RADIUS_MAX_SAMPLES);
+  for(uint_fast8_t i = 0; i < cnt; ++i) {
+    radii[i] = sqrtf(SQUARE(pts[i].x - center.x) + SQUARE(pts[i].y - center.y));
+  }
+  qsort(radii, cnt, sizeof(uint8_t), uint8_comp);
+  return radii[cnt / 2];
+}
+
 uint8_t houghgate(const struct image_t *img, struct houghresult_t *result) {
   // Initialize buffers
   memset(accumulator, 0, sizeof(accumulator));
@@ -158,6 +181,7 @@ uint8_t houghgate(const struct image_t *img, struct houghresult_t *result) {
       }
     }
   } while (1); // TODO check clock
+  result->radius = median_radius(points, points_count, result->center);
   result->samples = points_count;
   return RET_OK;
 }
