@@ -9,6 +9,7 @@
 #define RET_ERR 1
 
 struct houghresult_t {
+  uint16_t inliers;
   struct point_t center;
   uint8_t radius;
 };

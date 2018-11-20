@@ -113,8 +113,9 @@ uint8_t houghgate(const struct image_t *img, struct houghresult_t *result) {
   // Initialize buffers
   memset(accumulator, sizeof(accumulator), 0);
   points_count = 0;
-  uint_fast16_t best_score = 0;
-  struct pointu16_t best_pt;
+  result->inliers = 0;
+  result->center.x = 0;
+  result->center.y = 0;
   // Sample first pixel
   if(sample_pixel(img, &points[0])) return RET_ERR;
   ++points_count;
@@ -135,10 +136,10 @@ uint8_t houghgate(const struct image_t *img, struct houghresult_t *result) {
           uint_fast16_t y = round(midpt.y + (x - midpt.x) / orth.x * orth.y);
           if(0 <= y && y < ACCUMULATOR_HEIGHT) {
             if(ACCUMULATOR_AT(x, y) < UINT16_MAX) ++ACCUMULATOR_AT(x, y);
-            if(ACCUMULATOR_AT(x, y) > best_score) {
-              best_score = ACCUMULATOR_AT(x, y);
-              best_pt.x = x;
-              best_pt.y = y;
+            if(ACCUMULATOR_AT(x, y) > result->inliers) {
+              result->inliers = ACCUMULATOR_AT(x, y);
+              result->center.x = x * HOUGHGATE_DOWNSAMPLE_FACTOR;
+              result->center.y = y * HOUGHGATE_DOWNSAMPLE_FACTOR;
             }
           }
         }
@@ -147,14 +148,15 @@ uint8_t houghgate(const struct image_t *img, struct houghresult_t *result) {
           uint_fast16_t x = round(midpt.x + (y - midpt.y) / orth.y * orth.x);
           if(0 <= x && x < ACCUMULATOR_WIDTH) {
             if(ACCUMULATOR_AT(x, y) < UINT16_MAX) ++ACCUMULATOR_AT(x, y);
-            if(ACCUMULATOR_AT(x, y) > best_score) {
-              best_score = ACCUMULATOR_AT(x, y);
-              best_pt.x = x;
-              best_pt.y = y;
+            if(ACCUMULATOR_AT(x, y) > result->inliers) {
+              result->inliers = ACCUMULATOR_AT(x, y);
+              result->center.x = x * HOUGHGATE_DOWNSAMPLE_FACTOR;
+              result->center.y = y * HOUGHGATE_DOWNSAMPLE_FACTOR;
             }
           }
         }
       }
     }
-  } while (0);
+  } while (points_count < HOUGHGATE_MAX_SAMPLES); // TODO also check clock
+  return RET_OK;
 }
