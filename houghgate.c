@@ -126,8 +126,8 @@ uint8_t houghgate(const struct image_t *img, struct houghresult_t *result) {
     // Add Hough transform with older pixels to accumulator
     for(uint_fast16_t i = 0; i < points_count - 1; ++i) {
       struct pointf_t midpt;
-      midpt.x = ((float)points[points_count - 1].x - (float)points[i].x) / 2.0 / (float)HOUGHGATE_DOWNSAMPLE_FACTOR;
-      midpt.y = ((float)points[points_count - 1].y - (float)points[i].y) / 2.0 / (float)HOUGHGATE_DOWNSAMPLE_FACTOR;
+      midpt.x = ((float)points[points_count - 1].x + (float)points[i].x) / 2.0 / (float)HOUGHGATE_DOWNSAMPLE_FACTOR;
+      midpt.y = ((float)points[points_count - 1].y + (float)points[i].y) / 2.0 / (float)HOUGHGATE_DOWNSAMPLE_FACTOR;
       struct pointf_t orth;
       orth.x = (float)points[points_count - 1].y - (float)points[i].y; // Note: y instead of x to find orthogonal!
       orth.y = -((float)points[points_count - 1].x - (float)points[i].x);
@@ -157,6 +157,14 @@ uint8_t houghgate(const struct image_t *img, struct houghresult_t *result) {
         }
       }
     }
-  } while (points_count < HOUGHGATE_MAX_SAMPLES); // TODO also check clock
+  } while (1); // TODO check clock
   return RET_OK;
+}
+
+
+// DEBUG FUNCTIONS, manually add external declaration to calling code
+void houghgate_debug_get_accumulator(uint16_t **acc, int *w, int *h) {
+  *acc = accumulator;
+  *w = ACCUMULATOR_WIDTH;
+  *h = ACCUMULATOR_HEIGHT;
 }
