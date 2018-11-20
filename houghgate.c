@@ -21,7 +21,7 @@
 
 // Max number of pixels to sample
 #ifndef HOUGHGATE_MAX_SAMPLES
-#define HOUGHGATE_MAX_SAMPLES 100
+#define HOUGHGATE_MAX_SAMPLES 20
 #endif
 
 // Function to check pixel as inlier
@@ -79,15 +79,15 @@ static uint_fast16_t points_count;
  * @return nonzero (1) if inlier, 0 if outlier
  */
 static uint8_t isgate_yuv(const struct image_t *img, uint16_t x, uint16_t y) {
-  printf("x = %d, y = %d\n", x, y);
-  printf("y = %d, u = %d, v = %d\n", PIXEL_Y(img, x, y), PIXEL_U(img, x, y), PIXEL_V(img, x, y));
+//  printf("x = %d, y = %d\n", x, y);
+//  printf("y = %d, u = %d, v = %d\n", PIXEL_Y(img, x, y), PIXEL_U(img, x, y), PIXEL_V(img, x, y));
   if(HOUGHGATE_YMIN <= PIXEL_Y(img, x, y) && PIXEL_Y(img, x, y) <= HOUGHGATE_YMAX &&
       HOUGHGATE_UMIN <= PIXEL_U(img, x, y) && PIXEL_U(img, x, y) <= HOUGHGATE_UMAX &&
       HOUGHGATE_VMIN <= PIXEL_V(img, x, y) && PIXEL_V(img, x, y) <= HOUGHGATE_VMAX) {
-    printf("inlier\n");
+//    printf("inlier\n");
     return 1;
   } else {
-    printf("outlier\n");
+//    printf("outlier\n");
     return 0;
   }
 }
@@ -111,7 +111,7 @@ static uint8_t sample_pixel(const struct image_t *img, struct pointu16_t *pt) {
 
 uint8_t houghgate(const struct image_t *img, struct houghresult_t *result) {
   // Initialize buffers
-  memset(accumulator, sizeof(accumulator), 0);
+  memset(accumulator, 0, sizeof(accumulator));
   points_count = 0;
   result->inliers = 0;
   result->center.x = 0;

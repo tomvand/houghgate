@@ -39,7 +39,7 @@ void mat2yuv422(cv::Mat* image, uint8_t* image_buffer)
 
 int main(int argc, char **argv) {
   // Open test images
-  cv::VideoCapture cap("/home/tom/Dropbox/PhD/IMAV/2018/data/gates1/color678.png");
+  cv::VideoCapture cap("/home/tom/Dropbox/PhD/IMAV/data/gates/color6%02d.png");
   if (!cap.isOpened()) {
     printf("Couldn't open images\n");
     return -1;
@@ -63,13 +63,13 @@ int main(int argc, char **argv) {
     struct houghresult_t res;
     if(houghgate(&img_s, &res)) {
       std::cout << "RET_ERR" << std::endl;
+    } else {
+      cv::circle(img, cv::Point(res.center.x, res.center.y), 3, cv::Scalar(255, 255, 255));
     }
 
     std::cout << "X = " << res.center.x << ", Y = " << res.center.y << std::endl;
     std::cout << "samples = " << res.samples << ", inliers = " << res.inliers << std::endl;
     std::cout << "===================" << std::endl;
-
-    cv::circle(img, cv::Point(res.center.x, res.center.y), 3, cv::Scalar(255, 255, 255));
 
     cv::namedWindow("image", cv::WINDOW_NORMAL);
     cv::imshow("image", img);
@@ -89,9 +89,14 @@ int main(int argc, char **argv) {
     uint16_t *accumulator;
     int acc_w, acc_h;
     houghgate_debug_get_accumulator(&accumulator, &acc_w, &acc_h);
-    cv::Mat acc(acc_h, acc_w, CV_16UC1, accumulator);
+    cv::Mat_<uint16_t> acc(acc_h, acc_w, CV_16UC1);
+    for(int x = 0; x < acc_w; ++x) {
+      for(int y = 0; y < acc_h; ++y) {
+        acc.at<uint16_t>(y, x) = accumulator[x + y * acc_w];
+      }
+    }
     cv::Mat acc_color;
-    cv::normalize(acc, acc, 0, 255, cv::NORM_MINMAX, CV_8UC1);
+    cv::normalize(acc, acc, 0, UINT16_MAX, cv::NORM_MINMAX);
     cv::applyColorMap(acc, acc_color, cv::COLORMAP_PARULA);
     cv::imshow("accumulator", acc_color);
 
