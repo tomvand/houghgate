@@ -122,7 +122,7 @@ static int uint8_comp(const void *a, const void *b) {
 
 static uint8_t median_radius(const struct pointu16_t pts[], uint_fast16_t pts_cnt, struct point_t center) {
   uint8_t radii[HOUGHGATE_RADIUS_MAX_SAMPLES];
-  uint_fast8_t cnt = HOUGHGATE_MAX_SAMPLES;
+  uint_fast8_t cnt = HOUGHGATE_RADIUS_MAX_SAMPLES;
   if(pts_cnt < cnt) cnt = pts_cnt;
   memset(radii, 0, HOUGHGATE_RADIUS_MAX_SAMPLES);
   for(uint_fast8_t i = 0; i < cnt; ++i) {
