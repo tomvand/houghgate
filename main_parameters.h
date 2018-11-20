@@ -1,1 +1,2 @@
-// DUMMY
+#define IMAGE_WIDTH 128
+#define IMAGE_HEIGHT 96

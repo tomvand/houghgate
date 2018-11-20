@@ -2,6 +2,8 @@
 #include "houghgate.h"
 
 #include <stdlib.h>
+#include <string.h>
+#include <math.h>
 
 // Number of attempts at random sampling 1 pixel
 #ifndef HOUGHGATE_SAMPLE_ITER
@@ -11,6 +13,14 @@
 // Downsample factor for accumulator size. Use 1, 2, 4 or 8
 #ifndef HOUGHGATE_DOWNSAMPLE_FACTOR
 #define HOUGHGATE_DOWNSAMPLE_FACTOR 4
+#endif
+#define ACCUMULATOR_WIDTH (IMAGE_WIDTH / HOUGHGATE_DOWNSAMPLE_FACTOR)
+#define ACCUMULATOR_HEIGHT (IMAGE_HEIGHT / HOUGHGATE_DOWNSAMPLE_FACTOR)
+#define ACCUMULATOR_AT(x, y) (accumulator[(x) + (y) * ACCUMULATOR_WIDTH])
+
+// Max number of pixels to sample
+#ifndef HOUGHGATE_MAX_SAMPLES
+#define HOUGHGATE_MAX_SAMPLES 100
 #endif
 
 // Function to check pixel as inlier
@@ -38,7 +48,6 @@
 #define HOUGHGATE_VMAX 122
 #endif
 
-
 // Convenience macros for YUV422
 #define PIXEL_U(img,x,y) ( ((uint8_t*)((img)->buf))[4*(int)((x)/2) + 2*(y)*(img)->w] )
 #define PIXEL_V(img,x,y) ( ((uint8_t*)((img)->buf))[4*(int)((x)/2) + 2*(y)*(img)->w + 2] )
@@ -49,6 +58,22 @@ struct pointu16_t {
   uint16_t x;
   uint16_t y;
 };
+
+struct pointf_t {
+  float x;
+  float y;
+};
+
+#define PT_ADD(o, a, b) { (o).x = (a).x + (b).x; (o).y = (a).y + (b).y; }
+#define PT_SUB(o, a, b) { (o).x = (a).x - (b).x; (o).y = (a).y - (b).y; }
+#define PT_SMUL(o, a, s) { (o).x = (a).x * (s); (o).y = (a).y * (s); }
+#define PT_SDIV(o, a, s) { (o).x = (a).x / (s); (o).y = (a).y / (s); }
+
+// Accumulator and other buffers
+static uint16_t accumulator[ACCUMULATOR_WIDTH * ACCUMULATOR_HEIGHT];
+static struct pointu16_t points[HOUGHGATE_MAX_SAMPLES];
+static uint_fast16_t points_count;
+
 
 /**
  * Test whether pixel (x,y) in image img belongs to the gate
@@ -67,18 +92,69 @@ static uint8_t isgate_yuv(const struct image_t *img, uint16_t x, uint16_t y) {
   return score;
 }
 
+/**
+ * Sample random pixel according to HOUGHGATE_INLIER()
+ * @param img
+ * @param pt: struct with pixel coordinates
+ * @return RET_OK or RET_ERR
+ */
 static uint8_t sample_pixel(const struct image_t *img, struct pointu16_t *pt) {
   for(uint_fast16_t iter = HOUGHGATE_SAMPLE_ITER; iter > 0; --iter) {
     pt->x = rand() % img->w;
     pt->y = rand() % img->h;
     if(HOUGHGATE_INLIER(img, pt->x, pt->y)) {
-      return 1;
+      return RET_OK;
     }
   }
-  return 0;
+  return RET_ERR;
 }
 
-struct houghresult_t houghgate(const struct image_t *img) {
-  struct houghresult_t res;
-  return res;
+uint8_t houghgate(const struct image_t *img, struct houghresult_t *result) {
+  // Initialize buffers
+  memset(accumulator, sizeof(accumulator), 0);
+  points_count = 0;
+  uint_fast16_t best_score = 0;
+  struct pointu16_t best_pt;
+  // Sample first pixel
+  if(sample_pixel(img, &points[0])) return RET_ERR;
+  ++points_count;
+  do {
+    // Sample next pixel
+    if(points_count >= HOUGHGATE_MAX_SAMPLES || sample_pixel(img, &points[points_count])) break;
+    ++points_count;
+    // Add Hough transform with older pixels to accumulator
+    for(uint_fast16_t i = 0; i < points_count - 1; ++i) {
+      struct pointf_t midpt;
+      midpt.x = ((float)points[points_count - 1].x - (float)points[i].x) / 2.0 / (float)HOUGHGATE_DOWNSAMPLE_FACTOR;
+      midpt.y = ((float)points[points_count - 1].y - (float)points[i].y) / 2.0 / (float)HOUGHGATE_DOWNSAMPLE_FACTOR;
+      struct pointf_t orth;
+      orth.x = (float)points[points_count - 1].y - (float)points[i].y; // Note: y instead of x to find orthogonal!
+      orth.y = -((float)points[points_count - 1].x - (float)points[i].x);
+      if(abs(orth.x) > abs(orth.y)) { // Along x
+        for(uint_fast16_t x = 0; x < ACCUMULATOR_WIDTH; ++x) {
+          uint_fast16_t y = round(midpt.y + (x - midpt.x) / orth.x * orth.y);
+          if(0 <= y && y < ACCUMULATOR_HEIGHT) {
+            if(ACCUMULATOR_AT(x, y) < UINT16_MAX) ++ACCUMULATOR_AT(x, y);
+            if(ACCUMULATOR_AT(x, y) > best_score) {
+              best_score = ACCUMULATOR_AT(x, y);
+              best_pt.x = x;
+              best_pt.y = y;
+            }
+          }
+        }
+      } else { // Along y
+        for(uint_fast16_t y = 0; y < ACCUMULATOR_HEIGHT; ++y) {
+          uint_fast16_t x = round(midpt.x + (y - midpt.y) / orth.y * orth.x);
+          if(0 <= x && x < ACCUMULATOR_WIDTH) {
+            if(ACCUMULATOR_AT(x, y) < UINT16_MAX) ++ACCUMULATOR_AT(x, y);
+            if(ACCUMULATOR_AT(x, y) > best_score) {
+              best_score = ACCUMULATOR_AT(x, y);
+              best_pt.x = x;
+              best_pt.y = y;
+            }
+          }
+        }
+      }
+    }
+  } while (0);
 }

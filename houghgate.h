@@ -5,11 +5,14 @@
 
 #include <stdint.h>
 
+#define RET_OK 0
+#define RET_ERR 1
+
 struct houghresult_t {
   struct point_t center;
   uint8_t radius;
 };
 
-struct houghresult_t houghgate(const struct image_t *img);
+uint8_t houghgate(const struct image_t *img, struct houghresult_t *result);
 
 #endif
