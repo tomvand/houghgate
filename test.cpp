@@ -67,7 +67,7 @@ int main(int argc, char **argv) {
       cv::circle(img, cv::Point(res.center.x, res.center.y), res.radius, cv::Scalar(255, 255, 255));
     }
 
-    std::cout << "X = " << res.center.x << ", Y = " << res.center.y << ", R = " << res.radius << std::endl;
+    std::cout << "X = " << res.center.x << ", Y = " << res.center.y << ", R = " << (float)res.radius << std::endl;
     std::cout << "samples = " << res.samples << ", inliers = " << res.inliers << std::endl;
     std::cout << "===================" << std::endl;
 
